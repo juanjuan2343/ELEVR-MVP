@@ -1,20 +1,20 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  RunningObjective, 
-  ExperienceLevel, 
-  FrequencyOption, 
-  OnboardingData 
+import {
+  RunningObjective,
+  ExperienceLevel,
+  FrequencyOption,
+  OnboardingData
 } from "../types";
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Check, 
-  User, 
-  Target, 
-  Settings, 
-  ShieldAlert, 
-  Flame, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  User,
+  Target,
+  Settings,
+  ShieldAlert,
+  Flame,
   Heart,
   Activity
 } from "lucide-react";
@@ -26,14 +26,16 @@ interface OnboardingProps {
 
 export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
   const [step, setStep] = useState<number>(1);
-  
+
   // State for onboarding data
-  const [age, setAge] = useState<number>(30);
-  const [sex, setSex] = useState<"M" | "F" | "Otro">("M");
-  const [height, setHeight] = useState<number>(175);
-  const [weight, setWeight] = useState<number>(70);
+  // Importante: estos campos son string para evitar bugs tipo 032, 0175 o volver a 0 al borrar.
+  const [age, setAge] = useState<string>("30");
+  const [sex, setSex] = useState<"M" | "F">("M");
+  const [height, setHeight] = useState<string>("175");
+  const [weight, setWeight] = useState<string>("70");
+
   const [objective, setObjective] = useState<RunningObjective>(RunningObjective.PRIMER_10K);
-  
+
   // Specific inputs
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>(ExperienceLevel.INTERMEDIO_2K);
   const [time10K, setTime10K] = useState<string>("50:00");
@@ -41,23 +43,37 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
   const [vamTestDistance, setVamTestDistance] = useState<string>("");
   const [maxDistanceCurrent, setMaxDistanceCurrent] = useState<"less_5" | "5_10" | "10_15" | "more_15">("5_10");
   const [resistanceTarget, setResistanceTarget] = useState<"run_10k" | "run_15k" | "run_21k" | "general">("run_10k");
-  
+
   // Frequency & Injuries
   const [frequency, setFrequency] = useState<FrequencyOption>(FrequencyOption.FREQ_3_2);
   const [activeInjury, setActiveInjury] = useState<boolean>(false);
   const [injuryAreas, setInjuryAreas] = useState<string[]>([]);
   const [injuryNotes, setInjuryNotes] = useState<string>("");
 
+  const cleanNumericInput = (value: string) => {
+    const onlyDigits = value.replace(/\D/g, "");
+    return onlyDigits.replace(/^0+(?=\d)/, "");
+  };
+
+  const getSafeNumber = (value: string, fallback: number) => {
+    if (value.trim() === "") return fallback;
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+
   const handleNext = () => {
     if (step < 4) {
       setStep(prev => prev + 1);
     } else {
-      // Assemble and trigger complete
+      const parsedAge = getSafeNumber(age, 30);
+      const parsedHeight = getSafeNumber(height, 175);
+      const parsedWeight = getSafeNumber(weight, 70);
+
       const data: OnboardingData = {
-        age,
+        age: parsedAge,
         sex,
-        height,
-        weight,
+        height: parsedHeight,
+        weight: parsedWeight,
         objective,
         frequency,
         activeInjury,
@@ -67,13 +83,12 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
         completedAt: new Date().toISOString()
       };
 
-      // Add objective specific options
       if (objective === RunningObjective.PRIMER_10K) {
         data.experienceLevel = experienceLevel;
       } else if (objective === RunningObjective.MEJORAR_10K) {
         data.time10K = time10K;
       } else if (objective === RunningObjective.PRIMER_21K) {
-        data.time10K = time10K; // user might enter 10k to estimate
+        data.time10K = time10K;
       } else if (objective === RunningObjective.MEJORAR_21K) {
         data.time21K = time21K;
         data.time10K = time10K;
@@ -106,12 +121,13 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
 
   const renderObjectiveCard = (objVal: RunningObjective, title: string, desc: string, icon: React.ReactNode) => {
     const isSelected = objective === objVal;
+
     return (
       <div
         onClick={() => setObjective(objVal)}
         className={`p-4 rounded-xl border text-left cursor-pointer transition flex items-start gap-4 ${
-          isSelected 
-            ? "bg-neon/10 border-neon text-neon shadow-lg shadow-neon/5" 
+          isSelected
+            ? "bg-neon/10 border-neon text-neon shadow-lg shadow-neon/5"
             : "bg-white/5 border-white/10 hover:border-white/20 text-slate-300"
         }`}
       >
@@ -119,15 +135,19 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
           {icon}
         </div>
         <div>
-          <h4 className="font-black uppercase tracking-wider text-white mb-1 text-sm sm:text-base">{title}</h4>
-          <p className="text-xs text-white/60 font-semibold">{desc}</p>
+          <h4 className="font-black uppercase tracking-wider text-white mb-1 text-sm sm:text-base">
+            {title}
+          </h4>
+          <p className="text-xs text-white/60 font-semibold">
+            {desc}
+          </p>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="max-w-2xl w-full mx-auto glass rounded-2xl p-6 sm:p-10 text-slate-200 shadow-2xl relative overflow-hidden my-6">
+    <div className="w-full text-slate-200 relative py-2 sm:py-4">
       {/* Step indicators */}
       <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
         <div className="flex items-center gap-2">
@@ -135,17 +155,22 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
             <Heart className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-black uppercase tracking-wider text-white">Configurar Plan Adaptativo</h2>
-            <p className="text-xs text-white/50 font-bold uppercase tracking-widest">Paso {step} de 4</p>
+            <h2 className="text-lg font-black uppercase tracking-wider text-white">
+              Configurar Plan Adaptativo
+            </h2>
+            <p className="text-xs text-white/50 font-bold uppercase tracking-widest">
+              Paso {step} de 4
+            </p>
           </div>
         </div>
+
         <div className="flex gap-1.5">
           {[1, 2, 3, 4].map(s => (
-            <div 
-              key={s} 
+            <div
+              key={s}
               className={`h-1.5 w-6 rounded-full transition-all duration-300 ${
                 s === step ? "bg-neon w-10" : s < step ? "bg-neon/40" : "bg-white/10"
-              }`} 
+              }`}
             />
           ))}
         </div>
@@ -172,62 +197,66 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
-              {/* Edad */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Edad (Años)</label>
-                <input 
-                  type="number"
-                  min="12"
-                  max="99"
+                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                  Edad (Años)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
                   value={age}
-                  onChange={(e) => setAge(Number(e.target.value))}
+                  onChange={(e) => setAge(cleanNumericInput(e.target.value))}
+                  placeholder=""
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon transition font-bold"
                 />
               </div>
 
-              {/* Sexo */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Sexo Biológico</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["M", "F", "Otro"] as const).map(s => (
+                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                  Sexo Biológico
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["M", "F"] as const).map(s => (
                     <button
                       key={s}
                       type="button"
                       onClick={() => setSex(s)}
                       className={`py-3 text-center rounded-lg border font-black uppercase tracking-wider text-xs transition cursor-pointer ${
-                        sex === s 
-                          ? "bg-neon/10 border-neon text-neon" 
+                        sex === s
+                          ? "bg-neon/10 border-neon text-neon"
                           : "bg-white/5 border-white/10 hover:border-white/20 text-slate-400"
                       }`}
                     >
-                      {s === "M" ? "Masc" : s === "F" ? "Fem" : "Otro"}
+                      {s === "M" ? "Masc" : "Fem"}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Altura */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Altura (cm)</label>
-                <input 
-                  type="number"
-                  min="100"
-                  max="250"
+                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                  Altura (cm)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
                   value={height}
-                  onChange={(e) => setHeight(Number(e.target.value))}
+                  onChange={(e) => setHeight(cleanNumericInput(e.target.value))}
+                  placeholder=""
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon transition font-bold"
                 />
               </div>
 
-              {/* Peso */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Peso (kg)</label>
-                <input 
-                  type="number"
-                  min="30"
-                  max="200"
+                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                  Peso (kg)
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
                   value={weight}
-                  onChange={(e) => setWeight(Number(e.target.value))}
+                  onChange={(e) => setWeight(cleanNumericInput(e.target.value))}
+                  placeholder=""
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon transition font-bold"
                 />
               </div>
@@ -258,37 +287,42 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[380px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {renderObjectiveCard(
                 RunningObjective.PRIMER_10K,
                 "Preparar mi primer 10K",
                 "Ideal si empiezas de 0 o quieres correr 10 km continuos por primera vez.",
                 <Flame className="w-5 h-5" />
               )}
+
               {renderObjectiveCard(
                 RunningObjective.MEJORAR_10K,
                 "Mejorar mi marca 10K",
                 "Si ya completas un 10K y buscas bajar tus tiempos con series y tempo.",
                 <User className="w-5 h-5" />
               )}
+
               {renderObjectiveCard(
                 RunningObjective.PRIMER_21K,
                 "Preparar mi primer 21K",
                 "Tu primera media maratón. Enfoque en volumen, fondo y asimilación gradual.",
                 <Heart className="w-5 h-5" />
               )}
+
               {renderObjectiveCard(
                 RunningObjective.MEJORAR_21K,
                 "Mejorar mi marca 21K",
                 "Para bajar de tiempo en 21.1 km con series de umbral y tiradas exigentes.",
                 <Settings className="w-5 h-5" />
               )}
+
               {renderObjectiveCard(
                 RunningObjective.MEJORAR_RITMO,
                 "Mejorar ritmo de carrera",
                 "Si quieres correr más rápido en distancias cortas e intermedias de forma general.",
                 <Flame className="w-5 h-5" />
               )}
+
               {renderObjectiveCard(
                 RunningObjective.MEJORAR_RESISTENCIA,
                 "Mejorar resistencia general",
@@ -314,15 +348,19 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 3. Datos de Rendimiento
               </h3>
               <p className="text-xs uppercase tracking-wider text-white/60 font-semibold">
-                Ajustemos las métricas específicas para tu objetivo: <strong className="text-neon uppercase text-xs">{objective.replace("_", " ")}</strong>.
+                Ajustemos las métricas específicas para tu objetivo:{" "}
+                <strong className="text-neon uppercase text-xs">
+                  {String(objective).replace("_", " ")}
+                </strong>.
               </p>
             </div>
 
             <div className="space-y-5">
-              {/* PRIMER 10K Specific */}
               {objective === RunningObjective.PRIMER_10K && (
                 <div className="space-y-3">
-                  <label className="text-xs font-black uppercase tracking-widest text-white/70 block">¿Cuál es tu nivel actual?</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                    ¿Cuál es tu nivel actual?
+                  </label>
                   <div className="grid grid-cols-1 gap-2.5">
                     {[
                       { val: ExperienceLevel.PRINCIPIANTE_ZERO, label: "Principiante: Empiezo de 0 / Correr y caminar" },
@@ -347,10 +385,13 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 </div>
               )}
 
-              {/* MEJORAR 10K OR PRIMER 21K OR MEJORAR RITMO Specific: Time in 10K */}
-              {(objective === RunningObjective.MEJORAR_10K || objective === RunningObjective.PRIMER_21K || objective === RunningObjective.MEJORAR_RITMO) && (
+              {(objective === RunningObjective.MEJORAR_10K ||
+                objective === RunningObjective.PRIMER_21K ||
+                objective === RunningObjective.MEJORAR_RITMO) && (
                 <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Tiempo actual en 10K (Formato mm:ss o hh:mm:ss)</label>
+                  <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                    Tiempo actual en 10K (Formato mm:ss o hh:mm:ss)
+                  </label>
                   <input
                     type="text"
                     value={time10K}
@@ -364,11 +405,12 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 </div>
               )}
 
-              {/* MEJORAR 21K Specific */}
               {objective === RunningObjective.MEJORAR_21K && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Tiempo actual en 21K (hh:mm:ss)</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                      Tiempo actual en 21K (hh:mm:ss)
+                    </label>
                     <input
                       type="text"
                       value={time21K}
@@ -377,8 +419,11 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon transition font-mono font-bold"
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Tiempo actual en 10K (mm:ss)</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                      Tiempo actual en 10K (mm:ss)
+                    </label>
                     <input
                       type="text"
                       value={time10K}
@@ -390,11 +435,12 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 </div>
               )}
 
-              {/* MEJORAR RESISTENCIA Specific */}
               {objective === RunningObjective.MEJORAR_RESISTENCIA && (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">¿Cuál es tu distancia máxima actual corriendo?</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                      ¿Cuál es tu distancia máxima actual corriendo?
+                    </label>
                     <select
                       value={maxDistanceCurrent}
                       onChange={(e) => setMaxDistanceCurrent(e.target.value as any)}
@@ -408,7 +454,9 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">¿Qué objetivo de resistencia tienes?</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                      ¿Qué objetivo de resistencia tienes?
+                    </label>
                     <select
                       value={resistanceTarget}
                       onChange={(e) => setResistanceTarget(e.target.value as any)}
@@ -423,21 +471,23 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 </div>
               )}
 
-              {/* Opcional: VAM Test */}
               <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-white/70 block flex items-center justify-between gap-2">
+                <label className="text-xs font-black uppercase tracking-widest text-white/70 flex items-center justify-between gap-2">
                   <span>Test de VAM (Velocidad Aeróbica Máxima) - Opcional</span>
-                  <span className="text-[9px] bg-neon/10 text-neon px-2 py-0.5 rounded-full font-black">Recomendado</span>
+                  <span className="text-[9px] bg-neon/10 text-neon px-2 py-0.5 rounded-full font-black">
+                    Recomendado
+                  </span>
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={vamTestDistance}
-                  onChange={(e) => setVamTestDistance(e.target.value)}
+                  onChange={(e) => setVamTestDistance(cleanNumericInput(e.target.value))}
                   placeholder="Metros recorridos en 5 minutos (e.g. 1150)"
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-neon transition font-bold"
                 />
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Si has hecho un test de 5 minutos al máximo, introduce la distancia en metros. La app calculará tus zonas con precisión científica de laboratorio (Regla del manual).
+                  Si has hecho un test de 5 minutos al máximo, introduce la distancia en metros. La app calculará tus zonas con precisión científica de laboratorio.
                 </p>
               </div>
             </div>
@@ -464,9 +514,10 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
             </div>
 
             <div className="space-y-5">
-              {/* Frecuencia Semanal */}
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">Frecuencia Semanal de Running (+ Fuerza)</label>
+                <label className="text-xs font-black uppercase tracking-widest text-white/70 block">
+                  Frecuencia Semanal de Running (+ Fuerza)
+                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { val: FrequencyOption.FREQ_2_2, label: "2 + 2", desc: "2 carrera + 2 fuerza" },
@@ -494,12 +545,15 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 </p>
               </div>
 
-              {/* Lesión Activa */}
               <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-black uppercase tracking-wider text-white">¿Tienes alguna lesión o dolor muscular/articular activo?</h4>
-                    <p className="text-[11px] text-white/40 font-semibold leading-normal">Permite modular la intensidad de carga al inicio del plan.</p>
+                    <h4 className="text-xs font-black uppercase tracking-wider text-white">
+                      ¿Tienes alguna lesión o dolor muscular/articular activo?
+                    </h4>
+                    <p className="text-[11px] text-white/40 font-semibold leading-normal">
+                      Permite modular la intensidad de carga al inicio del plan.
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -507,8 +561,8 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                       setActiveInjury(!activeInjury);
                       if (activeInjury) setInjuryAreas([]);
                     }}
-                    className={`px-4 py-2 rounded-lg border font-black uppercase tracking-widest text-[10px] cursor-pointer transition ${
-                      activeInjury 
+                    className={`px-4 py-2 rounded-lg border font-black uppercase tracking-widest text-[10px] cursor-pointer transition shrink-0 ${
+                      activeInjury
                         ? "bg-rose-500/20 border-rose-500 text-rose-400"
                         : "bg-white/5 border-white/10 text-slate-400 hover:border-white/20"
                     }`}
@@ -518,15 +572,25 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 </div>
 
                 {activeInjury && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     className="space-y-3 pt-3 border-t border-white/10"
                   >
-                    <label className="text-xs font-black uppercase tracking-widest text-white/50 block">Selecciona las zonas sensibles o de molestias:</label>
+                    <label className="text-xs font-black uppercase tracking-widest text-white/50 block">
+                      Selecciona las zonas sensibles o de molestias:
+                    </label>
                     <div className="flex flex-wrap gap-1.5">
                       {[
-                        "rodilla", "tobillo", "cadera", "gemelos", "sóleo", "aquiles", "fascia_plantar", "espalda", "isquios"
+                        "rodilla",
+                        "tobillo",
+                        "cadera",
+                        "gemelos",
+                        "sóleo",
+                        "aquiles",
+                        "fascia_plantar",
+                        "espalda",
+                        "isquios"
                       ].map(area => {
                         const isSel = injuryAreas.includes(area);
                         return (
@@ -535,7 +599,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                             type="button"
                             onClick={() => toggleInjuryArea(area)}
                             className={`px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border cursor-pointer transition ${
-                              isSel 
+                              isSel
                                 ? "bg-rose-500/30 border-rose-500 text-rose-400"
                                 : "bg-white/5 border-white/10 text-slate-400 hover:border-white/20"
                             }`}
@@ -560,7 +624,6 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
         )}
       </AnimatePresence>
 
-      {/* Footer Navigation Buttons */}
       <div className="flex items-center justify-between mt-10 pt-6 border-t border-white/10">
         <button
           onClick={handleBack}
